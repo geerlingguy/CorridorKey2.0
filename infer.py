@@ -7,6 +7,7 @@ import tempfile
 
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 from pathlib import Path
 
@@ -115,10 +116,16 @@ def main():
     ap.add_argument("--low_vram_swin_window_batch", type=int, default=16)
     ap.add_argument("--low_vram_full_attn_query_chunk_tokens", type=int,
                     default=2048)
+    ap.add_argument("--device", default=os.environ.get("CORRIDORKEY_DEVICE", "auto"),
+                    choices=("auto", "cuda", "mps", "cpu"),
+                    help="Compute device. 'auto' picks CUDA, then Apple Silicon (MPS), "
+                         "then CPU.")
     args = ap.parse_args()
 
-    if not torch.cuda.is_available():
-        raise RuntimeError("CorridorKey v2 runtime requires a CUDA GPU.")
+    from corridorkey import device as dev
+    device = dev.resolve(args.device)
+    if device == "cpu":
+        print("[WARNING] No CUDA or Apple Silicon GPU found; running on CPU (very slow).")
     require_ffmpeg(args.ffmpeg_bin)
     package_root = Path(__file__).resolve().parent
     paths = RuntimePaths.from_package(package_root, args.weights)
@@ -166,7 +173,7 @@ def main():
         output_format=args.output_format,
         exr_dtype=args.exr_dtype,
     )
-    model = load_model(paths, device="cuda")
+    model = load_model(paths, device=device)
     run_inference(
         model,
         args.input,
