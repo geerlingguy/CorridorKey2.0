@@ -1,0 +1,90 @@
+# XcodeGen spec for the CorridorKey FxPlug 4 effect.
+#   brew install xcodegen && xcodegen generate   (or just run ./build.sh)
+#
+# Requires the FxPlug SDK (developer.apple.com/download/all/?q=FxPlug), which
+# installs FxPlug.framework + PluginManager.framework in /Library/Developer/Frameworks
+# and FxPlug.sdk in /Library/Developer/SDKs.
+
+name: CorridorKeyFxPlug
+options:
+  bundleIdPrefix: com.corridorkey.community
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CLANG_ENABLE_OBJC_ARC: YES
+    GCC_C_LANGUAGE_STANDARD: gnu11
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    # "Sign to Run Locally". Set DEVELOPMENT_TEAM (build.sh passes it through)
+    # to sign with your own certificate instead.
+    CODE_SIGN_IDENTITY: "-"
+
+targets:
+  CorridorKey:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - "Resources/**"
+          - "Info.plist"
+          - "App.entitlements"
+      - path: "App/Resources/Motion Templates"
+        type: folder
+        buildPhase: resources
+      - path: Plugin/CKClient.h
+      - path: Plugin/CKClient.m
+    settings:
+      base:
+        PRODUCT_NAME: CorridorKey
+        PRODUCT_BUNDLE_IDENTIFIER: com.corridorkey.community.fxplug
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/App.entitlements
+        USER_HEADER_SEARCH_PATHS: "$(SRCROOT)/Plugin"
+    dependencies:
+      - target: CorridorKeyRenderer
+        embed: true
+        codeSign: true
+        copy:
+          destination: plugins
+
+  CorridorKeyRenderer:
+    type: xpc-service
+    platform: macOS
+    sources:
+      - path: Plugin
+        excludes:
+          - "Info.plist"
+          - "Plugin.entitlements"
+    settings:
+      base:
+        PRODUCT_NAME: "CorridorKey Renderer"
+        PRODUCT_BUNDLE_IDENTIFIER: com.corridorkey.community.fxplug.renderer
+        INFOPLIST_FILE: Plugin/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Plugin/Plugin.entitlements
+        # PlugInKit discovers FxPlug bundles by this extension.
+        WRAPPER_EXTENSION: pluginkit
+        FRAMEWORK_SEARCH_PATHS:
+          - "/Library/Developer/Frameworks"
+          - "$(inherited)"
+        ADDITIONAL_SDKS: /Library/Developer/SDKs/FxPlug.sdk
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@loader_path/../Frameworks"
+        SKIP_INSTALL: YES
+    dependencies:
+      - framework: /Library/Developer/Frameworks/FxPlug.framework
+        embed: true
+        codeSign: true
+      - framework: /Library/Developer/Frameworks/PluginManager.framework
+        embed: true
+        codeSign: true
+      - sdk: Metal.framework
+      - sdk: IOSurface.framework
+      - sdk: Accelerate.framework
+      - sdk: CoreMedia.framework

@@ -38,9 +38,7 @@ def main():
     print(f"checkpoint ok: {paths.weights} ({paths.weights.stat().st_size / 1e9:.2f} GB)")
     print(f"state tensors: {len(state)}")
     if args.load_model:
-        if not torch.cuda.is_available():
-            raise RuntimeError("--load_model requires CUDA")
-        model = load_model(paths, device="cuda")
+        model = load_model(paths, device=os.environ.get("CORRIDORKEY_DEVICE", "auto"))
         print(f"model ok: d16={model.stage1.d_16}, "
               f"cradio={model.stage1.cradio_dim}, "
               f"moge={model.stage1.moge_dim}, "

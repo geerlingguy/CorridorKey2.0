@@ -50,6 +50,16 @@ The download script fetches:
 
 After that everything loads from those local folders.
 
+## Apple Silicon (MPS) and Final Cut Pro
+
+The runtime also runs on Apple Silicon Macs through PyTorch's MPS backend. It
+needs macOS 14+, and `pip install torch==2.9.1 torchvision==0.24.1` without the
+CUDA index URL. `--device auto` (the default) picks CUDA, then MPS, then CPU.
+You can force one with `--device cuda|mps|cpu` or `CORRIDORKEY_DEVICE`.
+
+`fcpx/` contains an FxPlug 4 effect for Final Cut Pro and Motion, backed by a
+local render server (`ck_server.py`). See [fcpx/README.md](fcpx/README.md).
+
 ## Drag-And-Drop Launcher
 
 The easiest way to run CorridorKey is to drag a clip, a frame-sequence folder,
